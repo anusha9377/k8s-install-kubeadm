@@ -1,0 +1,62 @@
+#Insatll kubernetes cluster version 1.23 using kubeadm
+#!/bin/bash
+#Update the system and install necessary packages:
+sudo apt update
+sudo apt install -y apt-transport-https curl
+#Install Docker:
+sudo apt install -y docker.io
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+#Disable swap to ensure Kubernetes works correctly:
+sudo swapoff -a
+sudo sed -i '/ swap / s/^/#/' /etc/fstab
+#Update the package manager and install necessary dependencies:
+sudo apt install -y apt-transport-https ca-certificates curl
+#Add the Kubernetes repository and import the repository signing key:
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+#Install the Kubernetes components:
+sudo apt update
+sudo apt install -y kubelet=1.23.0-00 kubeadm=1.23.0-00 kubectl=1.23.0-00
+
+#Run above script in master and worker nodes at the time of initializing
+============================================================
+
+#Initialize the Kubernetes master node:
+sudo kubeadm init --pod-network-cidr=172.31.36.13/16
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 172.31.36.13:6443 --token pn67i0.jzmhmgswzvomed8p \
+        --discovery-token-ca-cert-hash sha256:a4a6abc2acbcfc62a2f4a082a277cc0f368bf09db5efef1cba07cd0072a30048
+============================
+
+#Install a Pod network add-on. For example, you can use Calico:
+kubectl apply -f https://docs.projectcalico.org/v3.20/manifests/calico.yaml
+
+#Join worker nodes to the cluster: On each worker node, run the kubeadm join command 
+
+kubeadm join 172.31.36.13:6443 --token pn67i0.jzmhmgswzvomed8p \
+        --discovery-token-ca-cert-hash sha256:a4a6abc2acbcfc62a2f4a082a277cc0f368bf09db5efef1cba07cd0072a30048
+
+#To check on master
+kubectl get nodes
+kubectl get pods -A
+
+
+
+
